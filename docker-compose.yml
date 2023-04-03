@@ -1,0 +1,112 @@
+version: "3.8"
+services:
+  mariadb:
+    platform: linux/x86_64
+    image: mariadb
+    container_name: temporal-tables-mariadb
+    networks:
+      new:
+        aliases:
+          - database
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "3310:3306"
+    expose:
+      - "3310"
+    volumes:
+      - data:/var/lib/mysql
+  mariadb_test:
+    platform: linux/x86_64
+    image: mariadb
+    container_name: temporal-tables-mariadb-test
+    networks:
+      new:
+        aliases:
+          - databasetest
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "3311:3306"
+    expose:
+      - "3311"
+    volumes:
+      - data_test:/var/lib/mysql_test
+  migrate:
+    image: migrate/migrate
+    container_name: mariadb_migrate
+    env_file:
+      - .env
+    networks:
+      - new
+    volumes:
+      - ./db/migrations:/migrations
+    command: ["-path", "/migrations", "-database",  "mysql://hr:hr123!@tcp(database:3306)/hr?multiStatements=true", "up"]
+    links: 
+      - mariadb
+    depends_on:
+      - mariadb
+    restart: on-failure
+  migrate_test:
+    image: migrate/migrate
+    container_name: mariadb_migrate_test
+    env_file:
+      - .env
+    networks:
+      - new
+    volumes:
+      - ./db/migrations:/migrations
+    command: ["-path", "/migrations", "-database",  "mysql://hr:hr123!@tcp(databasetest:3306)/hr?multiStatements=true", "up"]
+    links: 
+      - mariadb_test
+    depends_on:
+      - mariadb_test
+    restart: on-failure
+  create-migration:
+    image: migrate/migrate
+    container_name: create_migration
+    env_file:
+      - .env
+    networks:
+      - new
+    volumes:
+      - ./db/migrations:/migrations
+    command: ["-path", "/migrations", "create", "-ext", "sql", "-dir", "/migrations", "-seq", "-digits", "4", "${NAME}"]
+    links: 
+        - mariadb
+    depends_on:
+      - mariadb
+    restart: on-failure
+  api:
+    container_name: employees_rest_api
+    build:
+      dockerfile: Dockerfile
+      context: .
+    volumes:
+      - api:/opt/app/api
+    networks:
+      - new
+    depends_on:
+      - migrate
+    command: ["./scripts/wait-for-it.sh", "mariadb:3310", "--", "./cmd/main"]
+    ports:
+      - 3000:3000
+  swagger-ui:
+   image: swaggerapi/swagger-ui
+   container_name: swagger_ui_container
+   ports:
+      - "80:8080"
+   volumes:
+      - ./doc:/usr/share/nginx/html/doc
+   environment:
+      API_URL: doc/swagger.json
+
+volumes:
+  data:
+  data_test:
+  api:
+networks:
+  new:
+    driver: bridge  
