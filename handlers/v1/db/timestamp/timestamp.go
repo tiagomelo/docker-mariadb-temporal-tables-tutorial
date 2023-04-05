@@ -20,17 +20,19 @@ type Handlers struct {
 // AdvanceTimestamp advances timestamp in database. It is used mainly for demonstration
 // purposes.
 func (h Handlers) AdvanceTimestamp(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	if err := mariaDb.AdvanceMariaDbTimestamp(ctx, h.Db); err != nil {
+	ts, err := mariaDb.AdvanceMariaDbTimestamp(ctx, h.Db)
+	if err != nil {
 		return v1Web.NewRequestError(err, http.StatusInternalServerError)
 	}
-	return web.Respond(ctx, w, nil, http.StatusNoContent)
+	return web.Respond(ctx, w, ts, http.StatusOK)
 }
 
 // SetDefaultTimestamp sets the database timestamp back to default, which is,
 // the current date.
 func (h Handlers) SetDefaultTimestamp(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	if err := mariaDb.SetDefaultMariaDbTimestamp(ctx, h.Db); err != nil {
+	ts, err := mariaDb.SetDefaultMariaDbTimestamp(ctx, h.Db)
+	if err != nil {
 		return v1Web.NewRequestError(err, http.StatusInternalServerError)
 	}
-	return web.Respond(ctx, w, nil, http.StatusNoContent)
+	return web.Respond(ctx, w, ts, http.StatusOK)
 }
