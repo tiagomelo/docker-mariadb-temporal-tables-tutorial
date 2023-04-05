@@ -14,6 +14,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
+	"github.com/tiagomelo/docker-mariadb-temporal-tables-tutorial/db/models"
 )
 
 var (
@@ -76,6 +77,7 @@ func TestAdvanceMariaDbTimestamp(t *testing.T) {
 		currentDateProvider func() time.Time
 		randomIntProvider   func() int
 		mockClosure         func() *sql.DB
+		expectedOutput      *models.DbTimestamp
 		expectedError       error
 	}{
 		{
@@ -93,6 +95,9 @@ func TestAdvanceMariaDbTimestamp(t *testing.T) {
 				mock.ExpectExec(regexp.QuoteMeta(q)).WillReturnResult(driver.ResultNoRows)
 				return db
 			},
+			expectedOutput: &models.DbTimestamp{
+				Timestamp: "2024-01-01",
+			},
 		},
 	}
 	for _, tc := range testCases {
@@ -100,7 +105,7 @@ func TestAdvanceMariaDbTimestamp(t *testing.T) {
 			handleCurrentDateProvider(tc.currentDateProvider)
 			handleRandomIntProvider(tc.randomIntProvider)
 			db := tc.mockClosure()
-			err := AdvanceMariaDbTimestamp(context.TODO(), db)
+			output, err := AdvanceMariaDbTimestamp(context.TODO(), db)
 			if err != nil {
 				if tc.expectedError == nil {
 					t.Fatalf(`expected no error, got "%v"`, err)
@@ -110,6 +115,7 @@ func TestAdvanceMariaDbTimestamp(t *testing.T) {
 				if tc.expectedError != nil {
 					t.Fatalf(`expected error "%v", got nil`, tc.expectedError)
 				}
+				require.Equal(t, tc.expectedOutput, output)
 			}
 		})
 	}
@@ -117,24 +123,34 @@ func TestAdvanceMariaDbTimestamp(t *testing.T) {
 
 func TestSetDefaultMariaDbTimestamp(t *testing.T) {
 	testCases := []struct {
-		name          string
-		mockClosure   func() *sql.DB
-		expectedError error
+		name                string
+		currentDateProvider func() time.Time
+		mockClosure         func() *sql.DB
+		expectedOutput      *models.DbTimestamp
+		expectedError       error
 	}{
 		{
 			name: "happy path",
+			currentDateProvider: func() time.Time {
+				t, _ := time.Parse(time.DateOnly, "2023-01-01")
+				return t
+			},
 			mockClosure: func() *sql.DB {
 				db, mock, _ := sqlmock.New()
 				q := `SET @@timestamp = default`
 				mock.ExpectExec(regexp.QuoteMeta(q)).WillReturnResult(driver.ResultNoRows)
 				return db
 			},
+			expectedOutput: &models.DbTimestamp{
+				Timestamp: "2023-01-01",
+			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			handleCurrentDateProvider(tc.currentDateProvider)
 			db := tc.mockClosure()
-			err := SetDefaultMariaDbTimestamp(context.TODO(), db)
+			output, err := SetDefaultMariaDbTimestamp(context.TODO(), db)
 			if err != nil {
 				if tc.expectedError == nil {
 					t.Fatalf(`expected no error, got "%v"`, err)
@@ -144,6 +160,7 @@ func TestSetDefaultMariaDbTimestamp(t *testing.T) {
 				if tc.expectedError != nil {
 					t.Fatalf(`expected error "%v", got nil`, tc.expectedError)
 				}
+				require.Equal(t, tc.expectedOutput, output)
 			}
 		})
 	}

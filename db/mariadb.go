@@ -12,6 +12,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/tiagomelo/docker-mariadb-temporal-tables-tutorial/db/models"
 )
 
 var (
@@ -55,17 +56,19 @@ func ConnectToMariaDb(user, pass, host, port, schema string) (*sql.DB, error) {
 
 // AdvanceMariaDbTimestamp advances timestamp in database. It is used mainly for demonstration
 // purposes.
-func AdvanceMariaDbTimestamp(ctx context.Context, db *sql.DB) error {
+func AdvanceMariaDbTimestamp(ctx context.Context, db *sql.DB) (*models.DbTimestamp, error) {
 	ts := currentDate().AddDate(randomInt(), 0, 0)
-	q := fmt.Sprintf(`SET @@timestamp = UNIX_TIMESTAMP('%s')`, ts.Format(time.DateOnly))
+	advancedTs := ts.Format(time.DateOnly)
+	q := fmt.Sprintf(`SET @@timestamp = UNIX_TIMESTAMP('%s')`, advancedTs)
 	_, err := db.ExecContext(ctx, q)
-	return err
+	return &models.DbTimestamp{Timestamp: advancedTs}, err
 }
 
 // SetDefaultMariaDbTimestamp sets the database timestamp back to default, which is,
 // the current date.
-func SetDefaultMariaDbTimestamp(ctx context.Context, db *sql.DB) error {
+func SetDefaultMariaDbTimestamp(ctx context.Context, db *sql.DB) (*models.DbTimestamp, error) {
 	q := `SET @@timestamp = default`
+	ts := currentDate()
 	_, err := db.ExecContext(ctx, q)
-	return err
+	return &models.DbTimestamp{Timestamp: ts.Format(time.DateOnly)}, err
 }

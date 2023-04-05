@@ -544,7 +544,7 @@ func TestAdvanceTimestamp(t *testing.T) {
 	}{
 		{
 			name:                 "happy path",
-			expectedResponseCode: http.StatusNoContent,
+			expectedResponseCode: http.StatusOK,
 		},
 	}
 	for _, tc := range testCases {
@@ -564,7 +564,7 @@ func TestSetDefaultTimestamp(t *testing.T) {
 	}{
 		{
 			name:                 "happy path",
-			expectedResponseCode: http.StatusNoContent,
+			expectedResponseCode: http.StatusOK,
 		},
 	}
 	for _, tc := range testCases {
