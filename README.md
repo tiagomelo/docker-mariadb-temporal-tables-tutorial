@@ -4,6 +4,8 @@ This is a tiny REST API to show how we can use temporal tables from [MariaDB](ht
 
 Make sure you check `Postman` folder; I've exported a collection with invocation examples.
 
+Related article: https://www.linkedin.com/pulse/golang-restful-api-using-temporal-table-mariadb-tiago-melo/
+
 ## running it
 
 ```
